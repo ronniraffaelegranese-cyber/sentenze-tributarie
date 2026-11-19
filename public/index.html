@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ricerca Sentenze Tributarie</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, sans-serif; background: #f4f6f8; height: 100vh; display: flex; flex-direction: column; }
+    header { background: #1e293b; color: #fff; padding: 14px 20px; }
+    h1 { font-size: 18px; }
+    .filtri { display: flex; gap: 8px; padding: 12px 20px; background: #fff; border-bottom: 1px solid #e2e8f0; flex-wrap: wrap; }
+    .filtri input, .filtri select { padding: 8px; border: 1px solid #cbd5e1; border-radius: 6px; }
+    #chat { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 10px; }
+    .msg { max-width: 80%; padding: 10px 14px; border-radius: 12px; white-space: pre-wrap; line-height: 1.5; }
+    .user { align-self: flex-end; background: #2563eb; color: #fff; }
+    .bot { align-self: flex-start; background: #fff; border: 1px solid #e2e8f0; }
+    form { display: flex; gap: 8px; padding: 12px 20px; background: #fff; border-top: 1px solid #e2e8f0; }
+    form input { flex: 1; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; }
+    button { padding: 10px 18px; background: #2563eb; color: #fff; border: none; border-radius: 6px; cursor: pointer; }
+    button:disabled { opacity: .6; }
+  </style>
+</head>
+<body>
+  <header><h1>Ricerca Sentenze in Materia Tributaria</h1></header>
+
+  <div class="filtri">
+    <input id="anno" type="number" placeholder="Anno (es. 2023)" min="1950" max="2100" />
+    <input id="oggetto" type="text" placeholder="Oggetto (es. IVA, trust, IRPEF)" />
+    <select id="livello">
+      <option value="tutti">Tutti i livelli</option>
+      <option>Corte di Giustizia (primo grado)</option>
+      <option>Corte d'Appello (secondo grado)</option>
+      <option>Cassazione - Sezioni Tributarie</option>
+      <option>CGUE</option>
+      <option>Corte Costituzionale</option>
+    </select>
+  </div>
+
+  <div id="chat"></div>
+
+  <form id="form">
+    <input id="message" placeholder="Es. Cerca sentenze su trust e imposte" autocomplete="off" />
+    <button id="send">Invia</button>
+  </form>
+
+  <script>
+    const chat = document.getElementById("chat");
+    const form = document.getElementById("form");
+    const messageEl = document.getElementById("message");
+    const annoEl = document.getElementById("anno");
+    const oggettoEl = document.getElementById("oggetto");
+    const livelloEl = document.getElementById("livello");
+
+    function addMsg(text, cls) {
+      const div = document.createElement("div");
+      div.className = "msg " + cls;
+      div.textContent = text;
+      chat.appendChild(div);
+      chat.scrollTop = chat.scrollHeight;
+      return div;
+    }
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const message = messageEl.value.trim();
+      if (!message) return;
+      addMsg(message, "user");
+      messageEl.value = "";
+      const send = document.getElementById("send");
+      send.disabled = true;
+      const loading = addMsg("Ricerca in corso…", "bot");
+      try {
+        const res = await fetch("/api/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            message,
+            anno: annoEl.value,
+            oggetto: oggettoEl.value,
+            livello: livelloEl.value,
+          }),
+        });
+        const data = await res.json();
+        loading.textContent = data.reply || data.error || "Nessuna risposta";
+      } catch {
+        loading.textContent = "Errore di connessione al server";
+      } finally {
+        send.disabled = false;
+        messageEl.focus();
+      }
+    });
+  </script>
+</body>
+</html>
