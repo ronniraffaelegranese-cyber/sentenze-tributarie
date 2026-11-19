@@ -27,18 +27,6 @@ class RiepilogoInput(BaseModel):
     temi: list[str] = Field(default_factory=lambda: list(TEMI_DEFAULT))
 
 
-class Fonte(BaseModel):
-    url: str
-
-
-class RiepilogoOutput(BaseModel):
-    generato_il: str
-    giorni: int
-    temi: list[str]
-    riepilogo: str
-    fonti: list[Fonte]
-
-
 def _tipo(entry: Any) -> str:
     return getattr(getattr(entry, "type", None), "value", getattr(entry, "type", ""))
 
@@ -102,17 +90,19 @@ async def genera_riepilogo(giorni: int, temi: list[str]) -> tuple[str, list[str]
     workflow_display_name="Riepilogo Sentenze Tributarie",
     workflow_description=(
         "Ricerca sul web le novità della giurisprudenza tributaria italiana "
-        "e produce un riepilogo con fonti."
+        "e produce un riepilogo in markdown con fonti, direttamente leggibile "
+        "dal risultato dell'esecuzione."
     ),
 )
 class RiepilogoSentenzeTributarieWorkflow:
     @workflows.workflow.entrypoint
-    async def run(self, input: RiepilogoInput) -> RiepilogoOutput:
+    async def run(self, input: RiepilogoInput) -> str:
+        data = workflows.workflow.now().date().isoformat()
         riepilogo, url_fonti = await genera_riepilogo(input.giorni, input.temi)
-        return RiepilogoOutput(
-            generato_il=workflows.workflow.now().date().isoformat(),
-            giorni=input.giorni,
-            temi=input.temi,
-            riepilogo=riepilogo,
-            fonti=[Fonte(url=url) for url in url_fonti],
+        fonti_md = "\n".join(f"- {url}" for url in url_fonti) or "- Nessuna fonte citata."
+        return (
+            f"# Riepilogo sentenze tributarie ({data}, ultimi {input.giorni} giorni)\n\n"
+            f"{riepilogo}\n\n"
+            "## Fonti\n\n"
+            f"{fonti_md}\n"
         )
