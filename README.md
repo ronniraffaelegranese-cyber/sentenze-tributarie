@@ -39,3 +39,17 @@ npm run dev
 ## Note
 
 I riferimenti alle sentenze proposti dal modello vanno sempre verificati sulle fonti ufficiali.
+
+## Workflow: riepilogo settimanale delle sentenze tributarie
+
+Nella cartella [`workflow/`](workflow/) c'è un progetto Mistral Workflows che una volta distribuito ricerca sul web le novità della giurisprudenza tributaria italiana (Commissioni Tributarie, Cassazione, CGUE, Corte Costituzionale, circolari dell'Agenzia delle Entrate) e produce un riepilogo in italiano con le fonti.
+
+Il workflow `riepilogo-sentenze-tributarie` accetta in input:
+
+```json
+{"giorni": 7, "temi": ["accertamento", "IVA", "IRPEF", "IRES", "riscossione", "penalità"]}
+```
+
+e restituisce data, finestra temporale, temi, riepilogo markdown ed elenco delle fonti citate.
+
+Per lo sviluppo locale: `cd workflow && uv sync --all-packages && bun install`, poi imposta `MISTRAL_API_KEY` in `workflow/.env` e avvia il worker con `mistral dev`. Per la distribuzione gestita: `mistral apps deploy`. Una volta attivo, si può schedulare (es. ogni lunedì) da AI Studio o tramite l'API dei schedule di Mistral.
